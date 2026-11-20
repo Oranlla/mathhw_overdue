@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <!-- 讓網頁在手機與平板上能自動縮放成合適的閱讀比例 -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>作業缺交查詢</title>
+  <style>
+    /* ================= CSS 變數設定區（統一管理配色） ================= */
+    :root {
+      --bg: #f5f7fa;          /* 頁面整體淺灰底色 */
+      --card: #ffffff;        /* 卡片白色背景 */
+      --text: #1f2937;        /* 主要深灰文字色 */
+      --muted: #6b7280;       /* 次要說明文字色 */
+      --border: #e5e7eb;      /* 邊框淺灰色 */
+      --red-bg: #fee2e2;      /* 「未繳」標籤淺紅底色 */
+      --red-text: #b91c1c;    /* 「未繳」標籤深紅文字 */
+      --purple-bg: #f3e8ff;   /* 「請假」標籤淺紫底色 */
+      --purple-text: #7e22ce; /* 「請假」標籤深紫文字 */
+      --green-bg: #dcfce7;    /* 「全數繳齊」提示淺綠底色 */
+      --green-text: #15803d;  /* 「全數繳齊」提示深綠文字 */
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans TC", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      margin: 0;
+      padding: 20px 14px;
+    }
+
+    /* 限制最大寬度並置中，讓電腦與手機版面都美觀 */
+    .container { max-width: 720px; margin: 0 auto; }
+
+    /* 頂部標題與搜尋控制列卡片 */
+    .header {
+      background: var(--card);
+      border-radius: 12px;
+      padding: 18px 20px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+    .header h1 { margin: 0; font-size: 1.4rem; }
+    .meta { font-size: 0.85rem; color: var(--muted); margin-top: 4px; }
+
+    /* 右側座號篩選框與重新整理按鈕 */
+    .controls { display: flex; gap: 8px; align-items: center; }
+    input[type="number"] {
+      width: 110px;
+      padding: 8px 10px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 0.95rem;
+    }
+    button {
+      padding: 8px 14px;
+      border: none;
+      border-radius: 8px;
+      background: #2563eb;
+      color: #fff;
+      font-size: 0.95rem;
+      cursor: pointer;
+    }
+    button:hover { background: #1d4ed8; }
+
+    /* 各項作業卡片樣式 */
+    .card {
+      background: var(--card);
+      border-radius: 12px;
+      padding: 16px 20px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+      margin-bottom: 14px;
+    }
+    .hw-title {
+      font-weight: 700;
+      font-size: 1.05rem;
+      margin-bottom: 10px;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    /* 座號膠囊標籤排列區 */
+    .seat-list { display: flex; flex-wrap: wrap; gap: 8px; }
+    .badge {
+      padding: 6px 12px;
+      border-radius: 999px;
+      font-weight: 600;
+      font-size: 0.95rem;
+    }
+    .badge-unsubmitted { background: var(--red-bg); color: var(--red-text); }
+    .badge-leave { background: var(--purple-bg); color: var(--purple-text); }
+    .badge-ok { background: var(--green-bg); color: var(--green-text); display: inline-block; }
+    .empty-msg { color: var(--muted); text-align: center; padding: 30px 10px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- 頁面頂部：顯示班級標題、更新時間與座號過濾器 -->
+    <div class="header">
+      <div>
+        <h1 id="pageTitle">作業缺交查詢</h1>
+        <div class="meta" id="updateTime">載入中...</div>
+      </div>
+      <div class="controls">
+        <!-- 讓學生輸入自己的座號，即時過濾只看自己的缺交項目 -->
+        <input type="number" id="seatFilter" placeholder="篩選座號" min="1">
+        <button onclick="loadData()">重新整理</button>
+      </div>
+    </div>
+
+    <!-- 主內容區：由 JavaScript 動態產生各科作業缺交清單 -->
+    <div id="content">
+      <div class="card empty-msg">資料讀取中，請稍候...</div>
+    </div>
+  </div>
+
+  <script>
+    // ========================================================================
+    // 【班級頁面設定區】製作 4 個班級網頁時，只需修改下面這兩行即可！
+    //   - class103.html -> '103'
+    //   - class104.html -> '104'
+    //   - class105.html -> '105'
+    //   - class206.html -> '206'
+    // ========================================================================
+    const CLASS_NAME = '103';
+    const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwHpZv-K1KdbbKDKRaT4B1wnZ2qSOQ4P_PRI-qKJGWTTcEwcXtxguStFQpdtZRRbIlyPQ/exec';
+    // ========================================================================
+
+    // 動態設定網頁分頁標題與畫面主標題
+    document.title = `${CLASS_NAME} 班 - 作業缺交查詢`;
+    document.getElementById('pageTitle').textContent = `${CLASS_NAME} 班作業缺交清單`;
+
+    // 暫存從後端抓回來的原始資料，方便在前端直接篩選座號而不用重複連線
+    let rawData = { assignments: [], pending: [] };
+
+    /**
+     * 向 Google Apps Script 發送 GET 請求，取得該班最新的未繳與請假資料
+     */
+    async function loadData() {
+      const updateEl = document.getElementById('updateTime');
+      updateEl.textContent = '資料更新中...';
+
+      try {
+        // 組合查詢網址，指定 action=student（學生模式，不會回傳姓名）
+        const url = `${SCRIPT_URL}?action=student&className=${encodeURIComponent(CLASS_NAME)}`;
+        const res = await fetch(url);
+        const json = await res.json();
+
+        // 若後端回傳 ok: false，拋出錯誤訊息
+        if (!json.ok) throw new Error(json.error || '讀取失敗');
+
+        rawData = json; // 存入全域變數
+
+        // 顯示本次更新的本地時間
+        const timeStr = new Date().toLocaleTimeString('zh-TW', {
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit'
+        });
+        updateEl.textContent = `最後更新：${timeStr}（補交並經老師登記後將自動從清單移除）`;
+
+        // 呼叫畫面渲染函式
+        render();
+      } catch (err) {
+        updateEl.textContent = '讀取失敗';
+        document.getElementById('content').innerHTML =
+          `<div class="card empty-msg">⚠️ 無法取得資料：${err.message}</div>`;
+      }
+    }
+
+    /**
+     * 根據 rawData 與目前的「座號篩選框」內容，將結果畫到網頁上
+     */
+    function render() {
+      const filterSeat = document.getElementById('seatFilter').value.trim();
+      const container = document.getElementById('content');
+
+      // 複製一份待補清單進行過濾
+      let items = rawData.pending || [];
+
+      // 如果學生有在篩選框輸入座號，只保留該座號的紀錄
+      if (filterSeat !== '') {
+        items = items.filter(item => String(item.seat) === filterSeat);
+      }
+
+      // 若篩選後沒有任何未繳或請假紀錄，顯示綠色的「全部完成」提示卡片
+      if (items.length === 0) {
+        const msg = filterSeat
+          ? `🎉 ${filterSeat} 號目前沒有未繳或請假待補的作業！`
+          : '🎉 全班目前皆已準時繳交或完成補交！';
+        container.innerHTML = `<div class="card"><span class="badge badge-ok">${msg}</span></div>`;
+        return;
+      }
+
+      // 依照試算表上的作業順序建立分組物件，確保作業顯示順序與老師試算表一致
+      const grouped = {};
+      (rawData.assignments || []).forEach(hw => { grouped[hw] = []; });
+
+      // 將每筆缺交/請假紀錄歸類到對應的作業名稱底下
+      items.forEach(item => {
+        if (!grouped[item.assignment]) grouped[item.assignment] = [];
+        grouped[item.assignment].push(item);
+      });
+
+      // 逐一產生每項作業的 HTML 卡片
+      let html = '';
+      for (const [hw, list] of Object.entries(grouped)) {
+        // 如果這項作業目前沒有人缺交或請假，就跳過不顯示卡片，保持版面乾淨
+        if (list.length === 0) continue;
+
+        // 依照座號由小到大排序（1號、2號、3號...）
+        list.sort((a, b) => Number(a.seat) - Number(b.seat));
+
+        // 根據狀態產生不同顏色的標籤（紅色＝未繳、紫色＝請假）
+        const badges = list.map(x => {
+          if (x.status === '請假') {
+            return `<span class="badge badge-leave">${x.seat} 號（請假）</span>`;
+          }
+          return `<span class="badge badge-unsubmitted">${x.seat} 號（未繳）</span>`;
+        }).join('');
+
+        html += `
+          <div class="card">
+            <div class="hw-title">
+              <span>📘 ${hw}</span>
+              <span style="color:#6b7280;font-size:0.9rem;">共 ${list.length} 人</span>
+            </div>
+            <div class="seat-list">${badges}</div>
+          </div>`;
+      }
+
+      container.innerHTML = html;
+    }
+
+    // 監聽座號輸入框：每當學生輸入或刪除數字時，立刻重新篩選畫面
+    document.getElementById('seatFilter').addEventListener('input', render);
+
+    // 網頁一載入完成，自動向後端抓取一次最新資料
+    loadData();
+  </script>
+</body>
+</html>
