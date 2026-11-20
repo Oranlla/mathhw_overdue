@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>老師管理後台 - 成績繳交登記系統</title>
+  <style>
+    /* ================= CSS 變數與四種作業狀態配色 ================= */
+    :root {
+      --bg: #f1f5f9;
+      --card: #ffffff;
+      --text: #0f172a;
+      --muted: #64748b;
+      --border: #cbd5e1;
+      --primary: #2563eb;
+      --unsubmitted-bg: #fee2e2; /* 未繳：紅底 */
+      --unsubmitted-fg: #b91c1c; /* 未繳：深紅字 */
+      --makeup-bg: #fef3c7;      /* 補交：橘黃底 */
+      --makeup-fg: #b45309;      /* 補交：深橘字 */
+      --leave-bg: #f3e8ff;       /* 請假：紫底 */
+      --leave-fg: #7e22ce;       /* 請假：深紫字 */
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans TC", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      margin: 0;
+      padding: 16px;
+    }
+
+    .container { max-width: 1100px; margin: 0 auto; }
+
+    .card {
+      background: var(--card);
+      border-radius: 12px;
+      padding: 18px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+      margin-bottom: 16px;
+    }
+
+    /* 登入畫面置中卡片 */
+    .login-box { max-width: 380px; margin: 80px auto; text-align: center; }
+    .login-box input {
+      width: 100%;
+      padding: 10px 12px;
+      margin: 12px 0;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 1rem;
+    }
+
+    /* 通用按鈕樣式 */
+    button {
+      padding: 8px 14px;
+      border: none;
+      border-radius: 8px;
+      font-size: 0.92rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.15s;
+    }
+    button:hover { opacity: 0.9; }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn-primary { background: var(--primary); color: #fff; }
+    .btn-red { background: #dc2626; color: #fff; }
+    .btn-amber { background: #d97706; color: #fff; }
+    .btn-purple { background: #7e22ce; color: #fff; }
+    .btn-gray { background: #e2e8f0; color: #334155; }
+
+    /* 頂部班級切換分頁列 */
+    .tabs { display: flex; gap: 8px; flex-wrap: wrap; justify-content: space-between; align-items: center; }
+    .class-tabs { display: flex; gap: 6px; flex-wrap: wrap; }
+    .tab-btn { background: #e2e8f0; color: #334155; padding: 8px 16px; }
+    .tab-btn.active { background: var(--primary); color: #fff; }
+
+    /* 操作面板雙欄網格（電腦版左 2 右 1，手機版自動變單欄上下排列） */
+    .panel-grid {
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: 16px;
+    }
+    @media (max-width: 768px) { .panel-grid { grid-template-columns: 1fr; } }
+
+    .form-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-top: 10px; }
+    select, input[type="text"], input[type="number"] {
+      padding: 8px 10px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 0.95rem;
+    }
+    .status-msg { margin-top: 10px; font-size: 0.9rem; font-weight: 600; min-height: 1.2em; }
+
+    /* 班級總表樣式（支援水平捲動，避免作業欄位太多時版面破掉） */
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.92rem; text-align: center; }
+    th, td { border: 1px solid var(--border); padding: 8px 10px; white-space: nowrap; }
+    th { background: #f8fafc; font-weight: 700; position: sticky; top: 0; }
+
+    /* 可點擊切換狀態的儲存格 */
+    td.cell-status { cursor: pointer; user-select: none; font-weight: 700; min-width: 72px; }
+    td.cell-status:hover { outline: 2px solid var(--primary); outline-offset: -2px; }
+    .st-未繳 { background: var(--unsubmitted-bg); color: var(--unsubmitted-fg); }
+    .st-補交 { background: var(--makeup-bg); color: var(--makeup-fg); }
+    .st-請假 { background: var(--leave-bg); color: var(--leave-fg); }
+
+    /* 表格底部統計列 */
+    tfoot td { background: #f8fafc; font-weight: 700; font-size: 0.85rem; line-height: 1.5; }
+  </style>
+</head>
+<body>
+  <!-- ================= 畫面一：密碼登入驗證區 ================= -->
+  <div id="loginView" class="card login-box">
+    <h2>🔐 老師管理後台</h2>
+    <p style="color:var(--muted);font-size:0.9rem;">請輸入管理密碼以載入班級名單</p>
+    <!-- 支援按下 Enter 鍵直接送出登入 -->
+    <input type="password" id="pwdInput" placeholder="輸入後端密碼" onkeydown="if(event.key==='Enter') login()">
+    <button class="btn-primary" style="width:100%;" onclick="login()">登入系統</button>
+    <div id="loginMsg" class="status-msg" style="color:#dc2626;"></div>
+  </div>
+
+  <!-- ================= 畫面二：登入後的主管理介面 ================= -->
+  <div id="mainView" class="container" style="display:none;">
+    <!-- 頂部導覽列：班級切換按鈕 + 重新整理 / 登出 -->
+    <div class="card tabs">
+      <div class="class-tabs" id="classTabs"></div>
+      <div style="display:flex;gap:8px;">
+        <button class="btn-gray" onclick="fetchClassData()">🔄 重新整理</button>
+        <button class="btn-gray" onclick="logout()">登出</button>
+      </div>
+    </div>
+
+    <!-- 中間操作區：左側批次登記、右側新增作業與學生 -->
+    <div class="panel-grid">
+      <!-- 快速批次登記卡片 -->
+      <div class="card">
+        <strong>⚡ 快速座號登記（支援逗號、頓號或空白分隔，如：1, 5, 12）</strong>
+        <div class="form-row">
+          <select id="hwSelect"></select>
+          <input type="text" id="seatsInput" placeholder="輸入座號..." style="flex:1;min-width:160px;">
+        </div>
+        <div class="form-row">
+          <button class="btn-red" onclick="batchUpdate('未繳')">標記未繳</button>
+          <button class="btn-amber" onclick="batchUpdate('補交')">標記補交</button>
+          <button class="btn-purple" onclick="batchUpdate('請假')">標記請假</button>
+          <button class="btn-gray" onclick="batchUpdate('')">清除（準時）</button>
+        </div>
+        <!-- 顯示操作成功或錯誤的即時回饋訊息 -->
+        <div id="opMsg" class="status-msg"></div>
+      </div>
+
+      <!-- 新增作業與學生卡片 -->
+      <div class="card">
+        <strong>➕ 新增項目</strong>
+        <div class="form-row">
+          <input type="text" id="newHwInput" placeholder="新作業名稱（如：數習P12）" style="flex:1;">
+          <button class="btn-primary" onclick="addAssignment()">新增作業</button>
+        </div>
+        <div class="form-row">
+          <input type="number" id="newSeatInput" placeholder="座號" style="width:75px;">
+          <input type="text" id="newNameInput" placeholder="學生姓名" style="flex:1;">
+          <button class="btn-primary" onclick="addStudent()">新增學生</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 底部班級總表卡片 -->
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px;">
+        <strong id="tableTitle">班級作業總表</strong>
+        <span style="font-size:0.85rem;color:var(--muted);">💡 提示：直接點擊狀態格子可依序切換（空白 → 未繳 → 補交 → 請假）</span>
+      </div>
+      <div class="table-wrap">
+        <table id="dataTable">
+          <thead></thead>
+          <tbody></tbody>
+          <tfoot></tfoot>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ========================================================================
+    // 【後端連線設定區】請貼上你的 Apps Script 網頁應用程式網址
+    // ========================================================================
+    const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwHpZv-K1KdbbKDKRaT4B1wnZ2qSOQ4P_PRI-qKJGWTTcEwcXtxguStFQpdtZRRbIlyPQ/exec';
+    // ========================================================================
+
+    // 管理的 4 個班級清單（必須與試算表分頁名稱及後端白名單完全一致）
+    const CLASSES = ['103', '104', '105', '206'];
+
+    // 點擊儲存格時的狀態循環順序：空白(準時) -> 未繳 -> 補交 -> 請假 -> 回到空白
+    const STATUS_CYCLE = ['', '未繳', '補交', '請假'];
+
+    let currentClass = CLASSES[0]; // 目前正在檢視的班級，預設為第一個班級 '103'
+    // 從瀏覽器的 sessionStorage 讀取已登入的密碼（關閉分頁會自動清除，兼顧方便與安全）
+    let password = sessionStorage.getItem('hw_admin_pwd') || '';
+    let classData = { assignments: [], students: [] }; // 暫存目前班級的完整資料
+
+    // 1. 動態產生頂部的 4 個班級切換按鈕
+    const tabsEl = document.getElementById('classTabs');
+    CLASSES.forEach(cls => {
+      const btn = document.createElement('button');
+      btn.className = 'tab-btn' + (cls === currentClass ? ' active' : '');
+      btn.textContent = cls + ' 班';
+      btn.dataset.className = cls; // 將純班級代號（如 '103'）存於 data 屬性中
+      btn.onclick = () => {
+        currentClass = cls;
+        // 更新按鈕的亮起（active）狀態
+        document.querySelectorAll('.tab-btn').forEach(b => {
+          b.classList.toggle('active', b.dataset.className === cls);
+        });
+        fetchClassData(); // 切換班級後立刻向後端載入該班資料
+      };
+      tabsEl.appendChild(btn);
+    });
+
+    // 2. 若同一分頁重新整理時仍有記憶密碼，直接跳過登入畫面並載入資料
+    if (password) {
+      document.getElementById('loginView').style.display = 'none';
+      document.getElementById('mainView').style.display = 'block';
+      fetchClassData();
+    }
+
+    /**
+     * 處理老師登入驗證：嘗試用輸入的密碼去讀取第一個班級的資料
+     */
+    async function login() {
+      const pwd = document.getElementById('pwdInput').value.trim();
+      if (!pwd) return;
+
+      document.getElementById('loginMsg').textContent = '密碼驗證與資料載入中...';
+      password = pwd;
+
+      const ok = await fetchClassData();
+      if (ok) {
+        // 驗證成功：將密碼存入 sessionStorage 並切換到主管理畫面
+        sessionStorage.setItem('hw_admin_pwd', pwd);
+        document.getElementById('loginView').style.display = 'none';
+        document.getElementById('mainView').style.display = 'block';
+      } else {
+        // 驗證失敗：清空密碼並顯示錯誤提示
+        password = '';
+        document.getElementById('loginMsg').textContent = '密碼錯誤或無法連線至後端';
+      }
+    }
+
+    /**
+     * 登出功能：清除 sessionStorage 密碼並重新整理頁面回到登入框
+     */
+    function logout() {
+      sessionStorage.removeItem('hw_admin_pwd');
+      password = '';
+      location.reload();
+    }
+
+    /**
+     * 在操作面板下方顯示提示訊息（綠色代表成功，紅色代表警告或錯誤）
+     */
+    function showMsg(text, isError = false) {
+      const el = document.getElementById('opMsg');
+      el.style.color = isError ? '#dc2626' : '#15803d';
+      el.textContent = text;
+    }
+
+    /**
+     * 向後端發送 GET 請求（action=teacher），讀取目前班級的完整名單與作業狀態
+     */
+    async function fetchClassData() {
+      document.getElementById('tableTitle').textContent = `${currentClass} 班 - 資料載入中...`;
+      try {
+        const url = `${SCRIPT_URL}?action=teacher&className=${encodeURIComponent(currentClass)}&password=${encodeURIComponent(password)}`;
+        const res = await fetch(url);
+        const json = await res.json();
+
+        if (!json.ok) {
+          showMsg(json.error || '讀取失敗', true);
+          return false;
+        }
+
+        classData = json;
+        renderAll(); // 資料取得成功後渲染選單與表格
+        return true;
+      } catch (err) {
+        showMsg('連線錯誤：' + err.message, true);
+        return false;
+      }
+    }
+
+    /**
+     * 渲染畫面上的「作業下拉選單」、「班級總表」與「底部統計列」
+     */
+    function renderAll() {
+      document.getElementById('tableTitle').textContent = `${currentClass} 班作業繳交總表（共 ${classData.students.length} 人）`;
+
+      // --- A. 更新作業下拉選單（盡量保留老師原本選中的作業項目） ---
+      const hwSelect = document.getElementById('hwSelect');
+      const prevHw = hwSelect.value;
+      hwSelect.innerHTML = '';
+      classData.assignments.forEach(hw => {
+        const opt = document.createElement('option');
+        opt.value = hw;
+        opt.textContent = hw;
+        hwSelect.appendChild(opt);
+      });
+      if (classData.assignments.includes(prevHw)) {
+        hwSelect.value = prevHw;
+      }
+
+      // --- B. 渲染表頭（座號 | 姓名 | 作業1 | 作業2 ...） ---
+      const thead = document.querySelector('#dataTable thead');
+      thead.innerHTML = `<tr><th>座號</th><th>姓名</th>${classData.assignments.map(hw => `<th>${hw}</th>`).join('')}</tr>`;
+
+      // --- C. 初始化每項作業的狀態計數器 ---
+      const tbody = document.querySelector('#dataTable tbody');
+      tbody.innerHTML = '';
+      const stats = {};
+      classData.assignments.forEach(hw => {
+        stats[hw] = { '未繳': 0, '補交': 0, '請假': 0 };
+      });
+
+      // --- D. 逐列產生每位學生的資料列 ---
+      classData.students.forEach(stu => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td>${stu.seat}</td><td>${stu.name}</td>`;
+
+        classData.assignments.forEach(hw => {
+          const st = stu.records[hw] || '';
+          // 若該格為未繳、補交或請假，將對應計數器 +1
+          if (stats[hw][st] !== undefined) stats[hw][st]++;
+
+          const td = document.createElement('td');
+          td.className = 'cell-status' + (st ? ` st-${st}` : '');
+          td.textContent = st;
+          // 綁定點擊事件：點擊格子可直接切換下一個狀態
+          td.onclick = () => cycleCellStatus(stu.seat, hw, st);
+          tr.appendChild(td);
+        });
+        tbody.appendChild(tr);
+      });
+
+      // --- E. 渲染表格底部的統計列（顯示每項作業的未繳、補交、請假人數） ---
+      const tfoot = document.querySelector('#dataTable tfoot');
+      const statCells = classData.assignments.map(hw => {
+        const s = stats[hw];
+        return `<td>
+          <span style="color:#b91c1c;">未繳: ${s['未繳']}</span><br>
+          <span style="color:#b45309;">補交: ${s['補交']}</span><br>
+          <span style="color:#7e22ce;">請假: ${s['請假']}</span>
+        </td>`;
+      }).join('');
+      tfoot.innerHTML = `<tr><td colspan="2">狀態統計</td>${statCells}</tr>`;
+    }
+
+    /**
+     * 統一的 POST 寫入請求函式
+     * 使用 text/plain 標頭是為了避開瀏覽器的 CORS OPTIONS 預檢請求（Google Apps Script 不支援 OPTIONS）
+     */
+    async function postAction(payload) {
+      showMsg('正在寫入 Google 試算表...');
+      const res = await fetch(SCRIPT_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({ password, className: currentClass, ...payload })
+      });
+      return await res.json();
+    }
+
+    /**
+     * 批次更新輸入框中多個座號的作業狀態
+     * @param {string} targetStatus - 目標狀態（'未繳' / '補交' / '請假' / ''）
+     */
+    async function batchUpdate(targetStatus) {
+      const assignment = document.getElementById('hwSelect').value;
+      const rawSeats = document.getElementById('seatsInput').value;
+      // 使用正規表達式切分座號，支援半形逗號、全形逗號、頓號或空白分隔
+      const seats = rawSeats.split(/[\s,，、]+/).map(s => s.trim()).filter(Boolean);
+
+      if (!assignment) return showMsg('請先新增並選擇一項作業', true);
+      if (seats.length === 0) return showMsg('請輸入至少一個座號', true);
+
+      const json = await postAction({ op: 'batchUpdate', assignment, seats, status: targetStatus });
+      if (!json.ok) return showMsg(json.error, true);
+
+      const label = targetStatus || '空白（準時）';
+      let msg = `✅ 已將 ${json.updatedSeats.join(', ')} 號的「${assignment}」設為【${label}】`;
+      // 若有輸入不存在的座號，顯示警告提醒
+      if (json.notFoundSeats && json.notFoundSeats.length > 0) {
+        msg += `（⚠️ 查無座號：${json.notFoundSeats.join(', ')}）`;
+      }
+
+      document.getElementById('seatsInput').value = ''; // 清空輸入框方便下次輸入
+      showMsg(msg);
+      await fetchClassData(); // 重新讀取最新表格
+    }
+
+    /**
+     * 點擊表格內的單一儲存格時，依序循環切換狀態
+     */
+    async function cycleCellStatus(seat, assignment, currentStatus) {
+      const nextIdx = (STATUS_CYCLE.indexOf(currentStatus) + 1) % STATUS_CYCLE.length;
+      const nextStatus = STATUS_CYCLE[nextIdx];
+
+      const json = await postAction({
+        op: 'batchUpdate',
+        assignment,
+        seats: [String(seat)],
+        status: nextStatus
+      });
+      if (!json.ok) return showMsg(json.error, true);
+
+      showMsg(`✅ 已更新 ${seat} 號「${assignment}」為【${nextStatus || '空白（準時）'}】`);
+      await fetchClassData();
+    }
+
+    /**
+     * 新增一個作業欄位到目前班級的試算表最右側
+     */
+    async function addAssignment() {
+      const name = document.getElementById('newHwInput').value.trim();
+      if (!name) return showMsg('請輸入作業名稱', true);
+
+      const json = await postAction({ op: 'addAssignment', assignmentName: name });
+      if (!json.ok) return showMsg(json.error, true);
+
+      document.getElementById('newHwInput').value = '';
+      showMsg(`✅ 已新增作業欄位：「${name}」`);
+      await fetchClassData();
+    }
+
+    /**
+     * 新增一位學生（座號與姓名）到目前班級的試算表最下方
+     */
+    async function addStudent() {
+      const seat = document.getElementById('newSeatInput').value.trim();
+      const name = document.getElementById('newNameInput').value.trim();
+      if (!seat || !name) return showMsg('請輸入座號與姓名', true);
+
+      const json = await postAction({ op: 'addStudent', seat, name });
+      if (!json.ok) return showMsg(json.error, true);
+
+      document.getElementById('newSeatInput').value = '';
+      document.getElementById('newNameInput').value = '';
+      showMsg(`✅ 已新增學生：${seat} 號 ${name}`);
+      await fetchClassData();
+    }
+  </script>
+</body>
+</html>
