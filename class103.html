@@ -221,9 +221,12 @@
         .filter(seat => filterSeat === '' || seat === filterSeat)
         .sort((a, b) => Number(a) - Number(b));
 
-      // 若沒有任何符合條件的座號，清空區塊不佔版面
+      // 若沒有任何符合條件的座號，顯示正常的綠色提示卡片
       if (overSeats.length === 0) {
-        sectionEl.innerHTML = '';
+        sectionEl.innerHTML = `
+          <div class="card" style="border-left: 4px solid #16a34a;">
+            <span class="badge badge-ok">✅ 目前沒有座號累計超過 ${UNSUBMITTED_LIMIT} 份未繳作業</span>
+          </div>`;
         return;
       }
 
