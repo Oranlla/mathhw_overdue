@@ -278,13 +278,8 @@
 
         rawData = json; // 存入全域變數
 
-        // 顯示本次更新的本地時間
-        const timeStr = new Date().toLocaleTimeString('zh-TW', {
-          hour: '2-digit',
-          minute: '2-digit',
-          second: '2-digit'
-        });
-        updateEl.textContent = `最後更新：${timeStr}（補交並經老師登記後將自動從清單移除）`;
+        // 顯示資料快照產生時間（每天 12:00 與 17:00 更新）
+        updateEl.textContent = `資料基準時間：${json.snapshotTime || '最新'}（每日 12:00、17:00 定時更新）`;
 
         // 呼叫畫面渲染函式
         render();
