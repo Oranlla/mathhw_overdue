@@ -50,7 +50,7 @@
     .header h1 { margin: 0; font-size: 1.4rem; }
     .meta { font-size: 0.85rem; color: var(--muted); margin-top: 4px; }
 
-    /* 右側座號篩選框與重新整理按鈕 */
+    /* 右側座號篩選框與重新載入按鈕 */
     .controls { display: flex; gap: 8px; align-items: center; }
     input[type="number"] {
       width: 110px;
@@ -159,11 +159,11 @@
       <div class="controls">
         <!-- 讓學生輸入自己的座號，即時過濾只看自己的缺交項目 -->
         <input type="number" id="seatFilter" placeholder="篩選座號" min="1">
-        <button onclick="loadData()">重新整理</button>
+        <button onclick="loadData()">重新載入</button>
       </div>
     </div>
 
-    <!-- 新增區塊：超過 9 份作業未繳的座號與詳細未繳項目（無符合者時自動隱藏） -->
+    <!-- 新增區塊：超過 9 份作業未繳的座號與詳細未繳項目 -->
     <div id="overLimitSection"></div>
 
     <!-- 主內容區：由 JavaScript 動態產生各科作業缺交清單 -->
@@ -174,7 +174,7 @@
 
   <script>
     // ========================================================================
-    // 【班級頁面設定區】製作 4 個班級網頁時，只需修改下面這兩行即可！
+    // 【班級頁面設定區】製作 4 個班級網頁時，只需修改下面這一行即可！
     //   - class103.html -> '103'
     //   - class104.html -> '104'
     //   - class105.html -> '105'
@@ -261,11 +261,11 @@
     }
     
     /**
-     * 向 Google Apps Script 發送 GET 請求，取得該班最新的未繳與請假資料
+     * 向 Google Apps Script 發送 GET 請求，取得該班最新的未繳與請假快照資料
      */
     async function loadData() {
       const updateEl = document.getElementById('updateTime');
-      updateEl.textContent = '資料更新中...';
+      updateEl.textContent = '資料讀取中...';
 
       try {
         // 組合查詢網址，指定 action=student（學生模式，不會回傳姓名）
