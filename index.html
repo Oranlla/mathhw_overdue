@@ -36,16 +36,16 @@
             <!-- 4 個班級查詢按鈕（2x2 網格排列） -->
             <div class="grid grid-cols-2 gap-3">
                 <a href="class103.html" class="block text-center bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 px-4 rounded-xl shadow-sm transition-all duration-200 hover:-translate-y-0.5">
-                    📘 103 班查詢
+                    103班
                 </a>
                 <a href="class104.html" class="block text-center bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 px-4 rounded-xl shadow-sm transition-all duration-200 hover:-translate-y-0.5">
-                    📘 104 班查詢
+                    104班
                 </a>
                 <a href="class105.html" class="block text-center bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 px-4 rounded-xl shadow-sm transition-all duration-200 hover:-translate-y-0.5">
-                    📘 105 班查詢
+                    105班
                 </a>
                 <a href="class206.html" class="block text-center bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 px-4 rounded-xl shadow-sm transition-all duration-200 hover:-translate-y-0.5">
-                    📘 206 班查詢
+                    206班
                 </a>
             </div>
 
@@ -54,25 +54,24 @@
             <!-- 老師管理後台按鈕 -->
             <div>
                 <a href="teacher.html" class="block text-center bg-slate-800 hover:bg-slate-900 text-white font-bold py-3.5 px-6 rounded-xl shadow-sm transition-all duration-200">
-                    🔐 老師管理後台
+                    管理後台
                 </a>
             </div>
         </section>
 
         <!-- 底部互動區 (保留原本的測試按鈕，不需要可隨時刪除)[cite: 1] -->
         <footer class="mt-8 pt-6 border-t border-gray-100 text-center">
-            <button onclick="showMessage()" class="text-sm bg-gray-100 hover:bg-gray-200 text-gray-600 font-medium py-1.5 px-4 rounded-lg transition-colors duration-200">
-                點擊測試
+            <button id="drawBtn" class="text-sm bg-amber-100 hover:bg-amber-200 text-amber-800 font-bold py-2 px-5 rounded-lg transition-colors duration-200">
+                    今日運勢
             </button>
-            <p id="message-area" class="mt-3 text-sm text-green-600 font-medium hidden">
-                ✅ 首頁按鈕運作正常！
-            </p>
+            <div id="fortuneResult" class="mt-3 text-sm text-gray-700"></div>
         </footer>
 
     </main>
 
     <!-- 簡單的 JavaScript 互動[cite: 1] -->
     <script>
+        // 顯示訊息
         function showMessage() {
             const messageArea = document.getElementById('message-area'); //[cite: 1]
             messageArea.classList.remove('hidden'); //[cite: 1]
@@ -80,6 +79,31 @@
                 messageArea.classList.add('hidden'); //[cite: 1]
             }, 3000); //[cite: 1]
         }
+        // 設定運勢清單（可自行增減內容）
+        const fortunes = [
+            { level: "大吉 🌟", desc: "萬事如意，今天做什麼都會非常順利！" },
+            { level: "中吉 ✨", desc: "心情愉快，會有意想不到的小確幸。" },
+            { level: "小吉 🍀", desc: "平穩順心，按部就班就能達成目標。" },
+            { level: "吉 🌸",   desc: "保持微笑，好運正在慢慢靠近你。" },
+            { level: "末吉 🍃", desc: "稍微耐心等待，轉機很快就會出現。" },
+            { level: "凶 🌧️",   desc: "今天宜低調行事，凡事多一分謹慎即可化解。" }
+          ];
+        
+        const drawBtn = document.getElementById('drawBtn');
+        const resultBox = document.getElementById('fortuneResult');
+        
+        // 監聽按鈕點擊事件
+        drawBtn.addEventListener('click', () => {
+        // 產生 0 到 (陣列長度 - 1) 之間的隨機整數
+        const randomIndex = Math.floor(Math.random() * fortunes.length);
+        const picked = fortunes[randomIndex];
+        
+        // 將抽中的運勢更新到畫面上
+        resultBox.innerHTML = `
+            <p style="font-size: 24px; color: #d97706; margin: 8px 0;">${picked.level}</p>
+            <p style="font-size: 16px; color: #4b5563; font-weight: normal;">${picked.desc}</p>
+            `;
+          });
     </script>
 </body>
 </html>
