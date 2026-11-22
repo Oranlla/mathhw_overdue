@@ -225,7 +225,7 @@
       if (overSeats.length === 0) {
         sectionEl.innerHTML = `
           <div class="card" style="border-left: 4px solid #16a34a;">
-            <span class="badge badge-ok">✅ 目前沒有座號累計超過 ${UNSUBMITTED_LIMIT} 份未繳作業</span>
+            <span class="badge badge-ok">目前沒有座號累計超過 ${UNSUBMITTED_LIMIT} 份未繳作業</span>
           </div>`;
         return;
       }
@@ -243,7 +243,7 @@
         return `
           <div class="alert-item">
             <div class="alert-seat">
-              <span>⚠️ ${seat} 號</span>
+              <span>${seat} 號</span>
               <span>累計 ${hwList.length} 份未繳</span>
             </div>
             <div class="alert-hw-list">${tagsHtml}</div>
