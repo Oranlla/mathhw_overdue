@@ -317,7 +317,7 @@
         return;
       }
 
-      // 依照試算表上的作業順序建立分組物件，確保作業顯示順序與老師試算表一致
+      // 依照試算表上的作業順序「反轉」建立分組物件（最新作業在最上方）
       const grouped = {};
       (rawData.assignments || []).slice().reverse().forEach(hw => { grouped[hw] = []; });
 
