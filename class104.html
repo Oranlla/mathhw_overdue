@@ -311,8 +311,8 @@
       // 若篩選後沒有任何未繳或請假紀錄，顯示綠色的「全部完成」提示卡片
       if (items.length === 0) {
         const msg = filterSeat
-          ? `🎉 ${filterSeat} 號目前沒有未繳或請假待補的作業！`
-          : '🎉 全班目前皆已準時繳交或完成補交！';
+          ? `${filterSeat} 號目前沒有未繳或請假待補的作業！`
+          : '全班目前皆已準時繳交或完成補交！';
         container.innerHTML = `<div class="card"><span class="badge badge-ok">${msg}</span></div>`;
         return;
       }
@@ -347,7 +347,7 @@
         html += `
           <div class="card">
             <div class="hw-title">
-              <span>📘 ${hw}</span>
+              <span>${hw}</span>
               <span style="color:#6b7280;font-size:0.9rem;">共 ${list.length} 人</span>
             </div>
             <div class="seat-list">${badges}</div>
