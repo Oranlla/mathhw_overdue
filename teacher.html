@@ -296,18 +296,22 @@
     function renderAll() {
       document.getElementById('tableTitle').textContent = `${currentClass} 班作業繳交總表（共 ${classData.students.length} 人）`;
 
-      // --- A. 更新作業下拉選單（盡量保留老師原本選中的作業項目） ---
+      // --- A. 更新作業下拉選單（由新到舊排列，並預設自動選到最新一項） ---
       const hwSelect = document.getElementById('hwSelect');
       const prevHw = hwSelect.value;
+      const reversedHw = (classData.assignments || []).slice().reverse();
       hwSelect.innerHTML = '';
-      classData.assignments.forEach(hw => {
+      reversedHw.forEach(hw => {
         const opt = document.createElement('option');
         opt.value = hw;
         opt.textContent = hw;
         hwSelect.appendChild(opt);
       });
-      if (classData.assignments.includes(prevHw)) {
+      // 若老師原本有選取某項舊作業且該作業仍存在，維持選取；否則自動選中最新作業（第一項）
+      if (reversedHw.includes(prevHw)) {
         hwSelect.value = prevHw;
+      } else if (reversedHw.length > 0) {
+        hwSelect.value = reversedHw[0];
       }
 
       // --- B. 渲染表頭（座號 | 姓名 | 作業1 | 作業2 ...） ---
