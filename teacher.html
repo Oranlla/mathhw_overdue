@@ -95,7 +95,7 @@
 
     .table-wrap {
       overflow-x: auto;
-      max-height: 75vh; /* 限制最大高度，讓上下捲動時表頭也能同步凍結 */
+      max-height: 85vh; /* 限制最大高度，讓上下捲動時表頭也能同步凍結 */
     }
     table {
       width: 100%;
@@ -209,13 +209,13 @@
       <!-- 新增作業與學生卡片 -->
       <div class="card">
         <strong>➕ 新增項目</strong>
-        <div class="form-row">
-          <input type="text" id="newHwInput" placeholder="新作業名稱（如：數習P12）" style="flex:1;">
+        <div class="form-row" style="flex-wrap: nowrap;">
+          <input type="text" id="newHwInput" placeholder="新作業名稱（如：數習P12）" style="flex:1; min-width:0;">
           <button class="btn-primary" onclick="addAssignment()">新增作業</button>
         </div>
-        <div class="form-row">
-          <input type="number" id="newSeatInput" placeholder="座號" style="width:75px;">
-          <input type="text" id="newNameInput" placeholder="學生姓名" style="flex:1;">
+        <div class="form-row" style="flex-wrap: nowrap;">
+          <input type="number" id="newSeatInput" placeholder="座號" style="width:75px; min-width:0;">
+          <input type="text" id="newNameInput" placeholder="學生姓名" style="flex:1; min-width:0;">
           <button class="btn-primary" onclick="addStudent()">新增學生</button>
         </div>
       </div>
