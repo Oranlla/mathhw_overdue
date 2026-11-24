@@ -93,11 +93,66 @@
     }
     .status-msg { margin-top: 10px; font-size: 0.9rem; font-weight: 600; min-height: 1.2em; }
 
-    /* 班級總表樣式（支援水平捲動，避免作業欄位太多時版面破掉） */
-    .table-wrap { overflow-x: auto; }
-    table { width: 100%; border-collapse: collapse; font-size: 0.92rem; text-align: center; }
-    th, td { border: 1px solid var(--border); padding: 8px 10px; white-space: nowrap; }
-    th { background: #f8fafc; font-weight: 700; position: sticky; top: 0; }
+    .table-wrap {
+      overflow-x: auto;
+      max-height: 75vh; /* 限制最大高度，讓上下捲動時表頭也能同步凍結 */
+    }
+    table {
+      width: 100%;
+      border-collapse: separate; /* 改為 separate，確保 sticky 欄位的邊框不會在滑動時消失 */
+      border-spacing: 0;
+      font-size: 0.92rem;
+      text-align: center;
+    }
+    th, td {
+      border-right: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+      padding: 8px 10px;
+      white-space: nowrap;
+    }
+    /* 補齊表格最上方與最左側外框線 */
+    thead tr:first-child th { border-top: 1px solid var(--border); }
+    tr th:first-child, tr td:first-child { border-left: 1px solid var(--border); }
+
+    /* 頂部表頭上下捲動凍結 */
+    th {
+      background: #f8fafc;
+      font-weight: 700;
+      position: sticky;
+      top: 0;
+      z-index: 2;
+    }
+
+    /* ================= 凍結左側第 1 欄（座號）與第 2 欄（姓名） ================= */
+    .sticky-col-1 {
+      position: sticky;
+      left: 0;
+      width: 56px;
+      min-width: 56px;
+      max-width: 56px;
+      background: #ffffff;
+      z-index: 3;
+    }
+    .sticky-col-2 {
+      position: sticky;
+      left: 56px; /* 緊接在座號欄（56px）右側 */
+      min-width: 84px;
+      background: #ffffff;
+      z-index: 3;
+      box-shadow: 2px 0 4px rgba(0, 0, 0, 0.06); /* 加上淡淡右側陰影區分凍結邊界 */
+    }
+    /* 表頭與表尾的凍結欄位背景色與最高層級設定 */
+    th.sticky-col-1, th.sticky-col-2 {
+      background: #f8fafc;
+      z-index: 4;
+    }
+    tfoot td.sticky-footer {
+      position: sticky;
+      left: 0;
+      background: #f8fafc;
+      z-index: 3;
+      box-shadow: 2px 0 4px rgba(0, 0, 0, 0.06);
+    }
 
     /* 可點擊切換狀態的儲存格 */
     td.cell-status { cursor: pointer; user-select: none; font-weight: 700; min-width: 72px; }
@@ -316,7 +371,7 @@
 
       // --- B. 渲染表頭（座號 | 姓名 | 作業1 | 作業2 ...） ---
       const thead = document.querySelector('#dataTable thead');
-      thead.innerHTML = `<tr><th>座號</th><th>姓名</th>${classData.assignments.map(hw => `<th>${hw}</th>`).join('')}</tr>`;
+      thead.innerHTML = `<tr><th class="sticky-col-1">座號</th><th class="sticky-col-2">姓名</th>${classData.assignments.map(hw => `<th>${hw}</th>`).join('')}</tr>`;
 
       // --- C. 初始化每項作業的狀態計數器 ---
       const tbody = document.querySelector('#dataTable tbody');
@@ -329,7 +384,7 @@
       // --- D. 逐列產生每位學生的資料列 ---
       classData.students.forEach(stu => {
         const tr = document.createElement('tr');
-        tr.innerHTML = `<td>${stu.seat}</td><td>${stu.name}</td>`;
+        tr.innerHTML = `<td class="sticky-col-1">${stu.seat}</td><td class="sticky-col-2">${stu.name}</td>`;
 
         classData.assignments.forEach(hw => {
           const st = stu.records[hw] || '';
