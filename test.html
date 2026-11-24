@@ -294,11 +294,15 @@
     /**
      * 根據 rawData 與目前的「座號篩選框」內容，將結果畫到網頁上
      */
-    function render() {
+      function render() {
       const filterSeat = document.getElementById('seatFilter').value.trim();
       const container = document.getElementById('content');
 
-      renderOverLimitSection(filterSeat);
+      if (filterSeat === '') {
+          renderOverLimitSection('');
+        } else {
+          document.getElementById('overLimitSection').innerHTML = '';
+        }
 
       // 複製一份待補清單進行過濾
       let items = rawData.pending || [];
