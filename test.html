@@ -316,7 +316,22 @@
         container.innerHTML = `<div class="card"><span class="badge badge-ok">${msg}</span></div>`;
         return;
       }
+      let html = '';
 
+      // 當有輸入座號時，在最上方顯示該座號的缺交總份數統計卡片
+      if (filterSeat !== '') {
+        const unsubmittedCount = items.filter(x => x.status !== '請假').length;
+        const leaveCount = items.filter(x => x.status === '請假').length;
+        const leaveText = leaveCount > 0 ? `（另有請假 ${leaveCount} 份）` : '';
+
+        html += `
+          <div class="card" style="background:#eff6ff; border:1px solid #bfdbfe; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+            <strong style="color:#1e40af; font-size:1.05rem;"> ${filterSeat} 號查詢統計</strong>
+            <span style="color:#b91c1c; font-weight:700; font-size:1.05rem;">
+              未繳共 ${unsubmittedCount} 份${leaveText}
+            </span>
+          </div>`;
+      }
       // 依照試算表上的作業順序「反轉」建立分組物件（最新作業在最上方）
       const grouped = {};
       (rawData.assignments || []).slice().reverse().forEach(hw => { grouped[hw] = []; });
@@ -328,7 +343,6 @@
       });
 
       // 逐一產生每項作業的 HTML 卡片
-      let html = '';
       for (const [hw, list] of Object.entries(grouped)) {
         // 如果這項作業目前沒有人缺交或請假，就跳過不顯示卡片，保持版面乾淨
         if (list.length === 0) continue;
